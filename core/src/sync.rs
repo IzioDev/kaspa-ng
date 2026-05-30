@@ -1,7 +1,7 @@
 use crate::imports::*;
 use kaspa_wallet_core::events::SyncState;
 
-const SYNC_STAGES: usize = 5;
+const SYNC_STAGES: usize = 6;
 
 #[derive(Default)]
 pub struct SyncStatus {
@@ -14,8 +14,14 @@ pub struct SyncStatus {
 }
 
 impl SyncStatus {
+    #[allow(unreachable_patterns)]
     pub fn try_from(state: &SyncState) -> Self {
         match state.clone() {
+            state if is_smt_sync(&state) => SyncStatus {
+                stage: Some(4),
+                caption: i18n("Syncing SMT state...").to_string(),
+                ..Default::default()
+            },
             SyncState::Proof { level } => {
                 if level == 0 {
                     SyncStatus {
@@ -46,23 +52,11 @@ impl SyncStatus {
                 progress_bar_text: Some(format!("{}%", progress)),
                 ..Default::default()
             },
-            SyncState::Blocks { blocks, progress } => SyncStatus {
-                stage: Some(3),
-                caption: format!(
-                    "{} {}",
-                    i18n("Syncing DAG Blocks..."),
-                    blocks.separated_string()
-                ),
-                // caption: "Syncing DAG Blocks...".to_string(),
-                progress_bar_percentage: Some(progress as f32 / 100_f32),
-                progress_bar_text: Some(format!("{}%", progress)),
-                ..Default::default()
-            },
             SyncState::TrustSync { processed, total } => {
                 let progress = processed * 100 / total;
 
                 SyncStatus {
-                    stage: Some(4),
+                    stage: Some(3),
                     caption: format!(
                         "{} {}",
                         i18n("Syncing DAG Trust..."),
@@ -75,6 +69,10 @@ impl SyncStatus {
                     ..Default::default()
                 }
             }
+            SyncState::UtxoResync => SyncStatus {
+                caption: i18n("Syncing...").to_string(),
+                ..Default::default()
+            },
             SyncState::UtxoSync { total, .. } => SyncStatus {
                 stage: Some(5),
                 caption: format!(
@@ -86,8 +84,16 @@ impl SyncStatus {
                 // progress_bar_text: Some(total.separated_string()),
                 ..Default::default()
             },
-            SyncState::UtxoResync => SyncStatus {
-                caption: i18n("Syncing...").to_string(),
+            SyncState::Blocks { blocks, progress } => SyncStatus {
+                stage: Some(6),
+                caption: format!(
+                    "{} {}",
+                    i18n("Syncing DAG Blocks..."),
+                    blocks.separated_string()
+                ),
+                // caption: "Syncing DAG Blocks...".to_string(),
+                progress_bar_percentage: Some(progress as f32 / 100_f32),
+                progress_bar_text: Some(format!("{}%", progress)),
                 ..Default::default()
             },
             SyncState::NotSynced => SyncStatus {
@@ -97,6 +103,10 @@ impl SyncStatus {
             SyncState::Synced => SyncStatus {
                 caption: i18n("Ready...").to_string(),
                 synced: true,
+                ..Default::default()
+            },
+            _ => SyncStatus {
+                caption: i18n("Syncing...").to_string(),
                 ..Default::default()
             },
         }
@@ -135,4 +145,9 @@ impl SyncStatus {
             ui.label(text_status);
         }
     }
+}
+
+fn is_smt_sync(state: &SyncState) -> bool {
+    let state = format!("{state:?}");
+    state.starts_with("SMTSync") || state.starts_with("SmtSync")
 }

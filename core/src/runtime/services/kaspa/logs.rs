@@ -13,7 +13,9 @@ impl From<&str> for Log {
     fn from(line: &str) -> Self {
         let line = line.trim();
         if !line.is_empty() {
-            if line.len() < 38 || &line[30..31] != "[" {
+            if line.starts_with("kaspad error:") {
+                Log::Error(line.to_string())
+            } else if line.len() < 38 || &line[30..31] != "[" {
                 Log::Info(line.to_string())
             } else {
                 let time = &line[11..23];

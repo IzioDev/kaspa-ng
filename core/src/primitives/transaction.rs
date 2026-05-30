@@ -3,8 +3,8 @@ use egui_phosphor::light::*;
 use kaspa_consensus_core::tx::{TransactionInput, TransactionOutpoint, TransactionOutput};
 use kaspa_txscript::standard::extract_script_pub_key_address;
 use kaspa_wallet_core::storage::{
-    transaction::{TransactionData, UtxoRecord},
     TransactionKind,
+    transaction::{TransactionData, UtxoRecord},
 };
 
 pub trait AsColor {
@@ -502,17 +502,19 @@ impl Transaction {
                             previous_outpoint,
                             signature_script: _,
                             sequence,
-                            sig_op_count,
+                            mass,
                         } = input;
                         let TransactionOutpoint {
                             transaction_id,
                             index,
                         } = previous_outpoint;
                         let transaction_id = transaction_id.to_string();
+                        let sigop_count = mass.sig_op_count().unwrap_or_default();
+                        let compute_budget = mass.compute_budget().unwrap_or_default();
                         ljb(&content)
                             .text(
                                 &format!(
-                                    "  {sequence:>2}: {}:{index} SigOps: {sig_op_count}",
+                                    "  {sequence:>2}: {}:{index} SigOps: {sigop_count} ComputeBudget: {compute_budget}",
                                     format_partial_string(&transaction_id, padding_range)
                                 ),
                                 default_color,
